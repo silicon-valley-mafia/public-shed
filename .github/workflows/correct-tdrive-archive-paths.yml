@@ -1,4 +1,4 @@
-name: Correct TDrive issue and PR archive paths (trigger)
+name: Correct TDrive issue and PR archive paths (retry)
 
 on:
   push:
@@ -47,7 +47,6 @@ jobs:
 
           if [ -d "jeetrex17/TDrive/Issues/1" ] && [ -z "$(find jeetrex17/TDrive/Issues/1 -mindepth 1 -print -quit)" ]; then
             rmdir "jeetrex17/TDrive/Issues/1"
-            git add -A "jeetrex17/TDrive/Issues/1"
           fi
 
       - name: Write correct PR metadata and indexes
