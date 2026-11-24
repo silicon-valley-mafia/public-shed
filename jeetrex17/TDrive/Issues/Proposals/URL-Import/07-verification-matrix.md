@@ -69,6 +69,21 @@
 | Remux possible | Prefer stream copy |
 | Unsafe filename | Safe TDrive name |
 
+## Phase 6 — Browser drag-and-drop and clipboard
+| Scenario | Expected |
+|---|---|
+| Drop one/multiple local files | Stable items staged and queued |
+| Drag webpage image exposing File | Image bytes staged |
+| Drag image/link exposing URL only | URL candidate uses backend validation |
+| Paste clipboard image/file | Staged when browser exposes item |
+| Paste URL text in import surface | URL candidate |
+| Paste ordinary text elsewhere | Existing behavior unchanged |
+| Empty/denied/unsupported clipboard | Actionable error, no crash |
+| Large browser file | Bounded/chunked transfer; no whole-file base64 |
+| Spoofed MIME or malicious filename | Backend validation and sanitized name |
+| Cancel/preview cleanup | Staging released and object URLs revoked |
+| Upload integration | Existing destination/encryption/queue/uploader preserved |
+
 ## Test layers
 - Unit: URL parsing, host policy, SSRF addresses, redirects, normalized metadata, variant identity, filename sanitation, backend selection, resume validator and cleanup.
 - Integration: controlled local HTTP server for redirects, Range/ETag, inaccurate Content-Length, slow body, cancellation and disk errors; stub resolver and child processes.
