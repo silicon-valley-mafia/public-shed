@@ -1,4 +1,4 @@
-# Proposal: Native URL Import for TDrive
+# Proposal: Unified Import for TDrive (URLs, Browser Drop and Clipboard)
 
 > Status: design proposal, not implemented.
 > Target: [jeetrex17/TDrive](https://github.com/jeetrex17/TDrive)
@@ -7,9 +7,11 @@
 
 ## Executive summary
 
-Add a native **Import from URL** workflow so users can provide direct file URLs or supported platform/page URLs, inspect what those URLs resolve to, select the intended media, and import it into the selected TDrive drive/folder without manually downloading it first.
+Add a unified import experience accepting direct/platform URLs, browser-dragged files or images, and clipboard-pasted images or files. All sources converge on one normalized review model, the existing transfer queue and the existing TDrive upload pipeline.
 
 The full target supports:
+- Browser drag-and-drop of files/images and URL-only links.
+- User-initiated clipboard paste of browser-exposed image/file data.
 - Direct HTTP/HTTPS file links (MP4, MKV, ZIP, PDF, images and ordinary files).
 - Platform URLs, initially evaluating X posts and YouTube.
 - One URL or multiple URLs in a batch.
@@ -69,6 +71,10 @@ Simple direct-file imports should not expose extractor/downloader internals to t
 | Authentication | Cookies/login deferred |
 | Delivery | One master proposal and five implementation phases |
 
+## Browser input behavior
+
+A drag may expose actual File bytes, a URL, or both. Inspect DataTransfer files/items and classify payloads accurately. If only a URL is exposed, route it through backend URL validation and SSRF protections; never fetch it directly from renderer code. Clipboard paste should be handled only on the focused import surface using the paste event payload. Do not poll the clipboard in the background, and preserve ordinary paste elsewhere. Transfer File/Blob bytes to private staging through bounded streaming/chunked bridge calls, not a whole-file base64 string. Treat MIME and filenames as hints, enforce byte/item/batch/disk limits in the backend, and revoke preview object URLs when finished.
+
 ## Architecture overview
 
 The resolver returns one or more normalized media items. The acquisition manager chooses exactly one owner for each download. The resulting file is staged privately and sent through the existing upload path.
@@ -103,7 +109,7 @@ TDrive's current uploader uses seekable source boundaries for size validation, e
 
 The staged path is then passed into the existing TDrive app/upload APIs. Reuse destination, encryption, upload limits, multipart/resumable handling, progress, Activity, Telegram publication and local projection. Preserve existing failure classification, especially the rule that an unknown Telegram send outcome must not be blindly retried.
 
-## Five-phase roadmap
+## Six-phase roadmap
 
 | Phase | Name | Main result |
 |---|---|---|
