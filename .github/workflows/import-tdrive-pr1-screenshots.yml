@@ -109,3 +109,76 @@ jobs:
           fi
           git commit -m "Import original TDrive PR #1 CI screenshots"
           git push origin tdrive-pr1-ci-screenshots
+
+  import-pr201-feature-shots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout screenshot branch
+        uses: actions/checkout@v4
+        with:
+          ref: tdrive-pr1-ci-screenshots
+          fetch-depth: 0
+
+      - name: Download PR 201 feature screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          folder="TDrive-PR-201-Path-Bar-Feature"
+          dest="$folder/images"
+          mkdir -p "$dest"
+          api="https://api.github.com/repos/silicon-valley-mafia/TDrive/contents/frontend/pr201-shots?ref=ci%2Fpr201-frontend"
+          curl -fsSL "$api" -H "Accept: application/vnd.github+json" > /tmp/pr201-images.json
+          jq -r '.[] | select(.type == "file" and (.name | test("^(dark|light)-.*\\.png$"))) | .download_url' /tmp/pr201-images.json > /tmp/pr201-image-urls.txt
+          test -s /tmp/pr201-image-urls.txt
+          while IFS= read -r url; do
+            name="${url##*/}"
+            curl -fsSL "$url" -o "$dest/$name"
+          done < /tmp/pr201-image-urls.txt
+          count="$(find "$dest" -maxdepth 1 -type f -name '*.png' | wc -l)"
+          test "$count" -gt 0
+          echo "Imported $count PR feature screenshots."
+
+      - name: Generate feature gallery
+        shell: bash
+        run: |
+          set -euo pipefail
+          folder="TDrive-PR-201-Path-Bar-Feature"
+          raw="https://raw.githubusercontent.com/silicon-valley-mafia/public-shed-1/tdrive-pr1-ci-screenshots/$folder/images"
+          {
+            echo "# TDrive PR #201 — Editable path bar"
+            echo
+            echo "Feature-specific screenshots for [PR #201](https://github.com/jeetrex17/TDrive/pull/201), not general CI regression captures."
+            echo
+            echo "Demonstrates the breadcrumb edit affordance, open path field, not-found feedback, local-path warning, and file selection in dark and light themes."
+            echo
+            for file in "$folder"/images/*.png; do
+              name="${file##*/}"
+              echo "## $name"
+              echo
+              echo "![$name]($raw/$name)"
+              echo
+            done
+          } > "$folder/GALLERY.md"
+          cat > "$folder/README.md" <<'EOF'
+# TDrive PR #201 — Path Bar Feature
+
+Feature screenshots for the editable breadcrumb/path bar.
+
+- [Gallery](GALLERY.md)
+- [Source PR](https://github.com/jeetrex17/TDrive/pull/201)
+- Original PNGs are preserved in images/, imported from frontend/pr201-shots on branch ci/pr201-frontend.
+EOF
+
+      - name: Commit feature screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TDrive-PR-201-Path-Bar-Feature
+          if git diff --cached --quiet; then
+            echo "No feature screenshot changes."
+            exit 0
+          fi
+          git commit -m "Import TDrive PR 201 path bar feature screenshots"
+          git push origin tdrive-pr1-ci-screenshots
