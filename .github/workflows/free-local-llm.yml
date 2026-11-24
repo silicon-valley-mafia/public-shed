@@ -1,0 +1,96 @@
+name: Free Local LLM Inference
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Prompt to send to the local model"
+        required: true
+        default: "Explain static timing analysis in digital VLSI design in simple terms."
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: free-local-llm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  inference:
+    name: Run Qwen locally on GitHub-hosted CPU
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Start Ollama and load model
+        uses: pydantic/ollama-action@v3
+        with:
+          model: qwen2:0.5b
+          cache-key: qwen2-05b-v1
+
+      - name: Wait for Ollama API
+        run: |
+          for attempt in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null; then
+              echo "Ollama API is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Ollama did not become ready in time." >&2
+          exit 1
+
+      - name: Run inference
+        env:
+          PROMPT: ${{ inputs.prompt }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          payload = json.dumps({
+              "model": "qwen2:0.5b",
+              "prompt": os.environ["PROMPT"],
+              "stream": False,
+              "options": {"temperature": 0.2}
+          }).encode()
+
+          request = urllib.request.Request(
+              "http://127.0.0.1:11434/api/generate",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request, timeout=900) as response:
+              result = json.load(response)
+
+          output = {
+              "model": result.get("model"),
+              "prompt": os.environ["PROMPT"],
+              "response": result.get("response"),
+              "total_duration_ns": result.get("total_duration"),
+              "load_duration_ns": result.get("load_duration"),
+              "prompt_eval_count": result.get("prompt_eval_count"),
+              "eval_count": result.get("eval_count"),
+              "eval_duration_ns": result.get("eval_duration"),
+          }
+
+          with open("ai-inference-result.json", "w", encoding="utf-8") as file:
+              json.dump(output, file, ensure_ascii=False, indent=2)
+
+          print("\n=== MODEL RESPONSE ===\n")
+          print(output["response"])
+          print("\n=== PERFORMANCE ===")
+          print(json.dumps({k: v for k, v in output.items() if k.endswith("_ns") or k.endswith("_count")}, indent=2))
+          PY
+
+      - name: Upload inference result
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-llm-inference-result
+          path: ai-inference-result.json
+          if-no-files-found: error
+          retention-days: 7
