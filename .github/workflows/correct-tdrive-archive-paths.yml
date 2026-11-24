@@ -1,4 +1,4 @@
-name: Correct TDrive issue and PR archive paths
+name: Correct TDrive issue and PR archive paths (trigger)
 
 on:
   push:
