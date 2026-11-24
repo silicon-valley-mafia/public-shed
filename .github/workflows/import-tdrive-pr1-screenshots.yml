@@ -29,7 +29,7 @@ jobs:
           ref: tdrive-pr1-ci-screenshots
           fetch-depth: 0
 
-      - name: Skip if original screenshots are already imported
+      - name: Skip if originals are already imported
         id: already
         run: |
           if [ -d TDrive-PR-1-CI-Screenshots/originals ] && [ "$(find TDrive-PR-1-CI-Screenshots/originals -type f | wc -l)" -gt 0 ]; then
@@ -38,19 +38,19 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-        - name: Download source workflow artifacts
+      - name: Download source workflow artifacts
         if: steps.already.outputs.skip != 'true'
-          env:
-            GH_TOKEN: ${{ github.token }}
-          run: |
-            set -euo pipefail
-            mkdir -p /tmp/tdrive-artifacts
-            gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14939122064/zip > /tmp/tdrive-artifacts/playwright.zip
-            gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14949580751/zip > /tmp/tdrive-artifacts/appimage.zip
-            test -s /tmp/tdrive-artifacts/playwright.zip
-            test -s /tmp/tdrive-artifacts/appimage.zip
-            unzip -tq /tmp/tdrive-artifacts/playwright.zip
-            unzip -tq /tmp/tdrive-artifacts/appimage.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tdrive-artifacts
+          gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14939122064/zip > /tmp/tdrive-artifacts/playwright.zip
+          gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14949580751/zip > /tmp/tdrive-artifacts/appimage.zip
+          test -s /tmp/tdrive-artifacts/playwright.zip
+          test -s /tmp/tdrive-artifacts/appimage.zip
+          unzip -tq /tmp/tdrive-artifacts/playwright.zip
+          unzip -tq /tmp/tdrive-artifacts/appimage.zip
 
       - name: Extract and copy all image files into repository
         if: steps.already.outputs.skip != 'true'
@@ -81,18 +81,30 @@ jobs:
 
           - Playwright artifact ID: 14939122064
           - AppImage artifact ID: 14949580751
-          - Image files copied: $count
+          - Imported image files: $count
 
-          Files are stored under `originals/playwright/` and `originals/appimage/`.
+          Originals are under `originals/playwright/` and `originals/appimage/`.
           EOF
+          python - <<'PY'
+          from pathlib import Path
+          root = Path("TDrive-PR-1-CI-Screenshots")
+          exts = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
+          files = sorted(p for p in (root / "originals").rglob("*") if p.is_file() and p.suffix.lower() in exts)
+          with (root / "GALLERY.md").open("w", encoding="utf-8") as out:
+              out.write("# TDrive PR #1 — full CI screenshot gallery\\n\\n")
+              out.write(f"Imported {len(files)} viewable images from the CI artifacts.\\n\\n")
+              for p in files:
+                  rel = p.relative_to(root).as_posix()
+                  out.write(f"### {p.name}\\n\\n![{p.name}]({rel})\\n\\n")
+          PY
 
-      - name: Commit imported originals
+      - name: Commit imported originals and gallery
         if: steps.already.outputs.skip != 'true'
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add TDrive-PR-1-CI-Screenshots/originals TDrive-PR-1-CI-Screenshots/IMPORT-MANIFEST.md
+          git add TDrive-PR-1-CI-Screenshots/originals TDrive-PR-1-CI-Screenshots/IMPORT-MANIFEST.md TDrive-PR-1-CI-Screenshots/GALLERY.md
           if git diff --cached --quiet; then
             echo "No new screenshot files to commit."
             exit 0
