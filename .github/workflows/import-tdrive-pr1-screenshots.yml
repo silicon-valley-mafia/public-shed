@@ -8,8 +8,6 @@ on:
     paths:
       - .github/workflows/import-tdrive-pr1-screenshots.yml
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
 
 permissions:
   contents: write
