@@ -1,4 +1,4 @@
-name: Organize TDrive issue screenshots (main-branch trigger)
+name: Validate TDrive archive layout
 
 on:
   push:
@@ -8,107 +8,24 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: organize-tdrive-issue-assets
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  organize:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Move PR #1 CI archive into issue folder
+      - uses: actions/checkout@v4
+      - name: Validate canonical archive paths and links
         shell: bash
         run: |
           set -euo pipefail
-          old="TDrive-PR-1-CI-Screenshots"
-          new="jeetrex17/TDrive/Issues/1/CI-Screenshots"
-          if [ -d "$old" ] && [ ! -d "$new" ]; then
-            mkdir -p "$(dirname "$new")"
-            git mv "$old" "$new"
-          fi
-
-      - name: Download PR #201 feature screenshots into issue folder
-        shell: bash
-        run: |
-          set -euo pipefail
-          dest="jeetrex17/TDrive/Issues/201/images"
-          mkdir -p "$dest"
-          base="https://raw.githubusercontent.com/silicon-valley-mafia/TDrive/ci/pr201-frontend/frontend/pr201-shots"
-          for name in \
-            dark-1-hover-edit-button.png dark-1-hover-edit-button-header.png \
-            dark-2-field-open.png dark-2-field-open-header.png \
-            dark-3-not-found.png dark-3-not-found-header.png \
-            dark-4-local-path.png dark-4-local-path-header.png \
-            dark-5-file-selected.png dark-5-file-selected-header.png \
-            light-1-hover-edit-button.png light-1-hover-edit-button-header.png \
-            light-2-field-open.png light-2-field-open-header.png \
-            light-3-not-found.png light-3-not-found-header.png \
-            light-4-local-path.png light-4-local-path-header.png \
-            light-5-file-selected.png light-5-file-selected-header.png; do
-            curl --fail --silent --show-error --location "$base/$name" --output "$dest/$name"
-            test -s "$dest/$name"
-          done
-
-      - name: Generate sorted issue index and compact gallery
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > jeetrex17/TDrive/Issues/README.md <<'EOF'
-          # TDrive issue resources
-
-          Issue-related artifacts are organized by upstream issue or pull-request number.
-
-          - [Issue/PR #1 — CI screenshot archive](1/CI-Screenshots/README.md)
-          - [Issue/PR #201 — Editable path-bar feature](201/README.md)
-          EOF
-          cat > jeetrex17/TDrive/Issues/201/README.md <<'EOF'
-          # TDrive PR #201 — Editable folder path bar
-
-          Feature-specific screenshots for the breadcrumb/path-bar feature.
-
-          - [View the compact gallery](GALLERY.md)
-          - [Upstream PR #201](https://github.com/jeetrex17/TDrive/pull/201)
-          - Original PNGs are stored in images/.
-          EOF
-          folder="jeetrex17/TDrive/Issues/201"
-          {
-            echo '# TDrive PR #201 — Editable folder path bar'
-            echo
-            echo 'Feature-specific screenshots for [PR #201](https://github.com/jeetrex17/TDrive/pull/201), not general CI regression captures.'
-            echo
-            echo 'The sequence shows the path edit affordance, editable field, not-found feedback, local-path warning, and file-selected state in dark and light themes.'
-            echo
-            echo 'Displayed at 280 px wide, three previews per row.'
-            echo
-            index=0
-            for file in "$folder"/images/*.png; do
-              name="${file##*/}"
-              if (( index % 3 == 0 )); then echo '<table><tr>'; fi
-              printf '<td align="center"><img src="images/%s" width="280" alt="%s"><br><sub>%s</sub></td>\n' "$name" "$name" "$name"
-              index=$((index + 1))
-              if (( index % 3 == 0 )); then echo '</tr></table>'; echo; fi
-            done
-            if (( index % 3 != 0 )); then echo '</tr></table>'; fi
-          } > "$folder/GALLERY.md"
-
-      - name: Commit organized issue resources
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "Already organized; no changes to commit."
-            exit 0
-          fi
-          git commit -m "Organize TDrive screenshot assets by issue"
-          git push origin main
+          test -d jeetrex17/TDrive/PRs/201/images
+          test -f jeetrex17/TDrive/PRs/201/README.md
+          test -f jeetrex17/TDrive/PRs/201/GALLERY.md
+          test -d silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/originals
+          test -f silicon-valley-mafia/TDrive/PRs/1/README.md
+          test ! -e jeetrex17/TDrive/Issues/201
+          test ! -e jeetrex17/TDrive/Issues/1
+          ! grep -R -n 'tdrive-pr1-ci-screenshots' --include='*.md' --include='*.yml' .
+          ! grep -R -n 'Issues/201\|Issues/1/CI-Screenshots' --include='*.md' --include='*.yml' .
+          echo 'TDrive archive structure is consistent.'
