@@ -8,6 +8,8 @@ on:
     paths:
       - .github/workflows/import-tdrive-pr1-screenshots.yml
   workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: write
@@ -27,20 +29,31 @@ jobs:
           ref: tdrive-pr1-ci-screenshots
           fetch-depth: 0
 
-      - name: Download source workflow artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Skip if original screenshots are already imported
+        id: already
         run: |
-          set -euo pipefail
-          mkdir -p /tmp/tdrive-artifacts
-          gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14939122064/zip > /tmp/tdrive-artifacts/playwright.zip
-          gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14949580751/zip > /tmp/tdrive-artifacts/appimage.zip
-          test -s /tmp/tdrive-artifacts/playwright.zip
-          test -s /tmp/tdrive-artifacts/appimage.zip
-          unzip -tq /tmp/tdrive-artifacts/playwright.zip
-          unzip -tq /tmp/tdrive-artifacts/appimage.zip
+          if [ -d TDrive-PR-1-CI-Screenshots/originals ] && [ "$(find TDrive-PR-1-CI-Screenshots/originals -type f | wc -l)" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+        - name: Download source workflow artifacts
+        if: steps.already.outputs.skip != 'true'
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: |
+            set -euo pipefail
+            mkdir -p /tmp/tdrive-artifacts
+            gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14939122064/zip > /tmp/tdrive-artifacts/playwright.zip
+            gh api repos/silicon-valley-mafia/TDrive/actions/artifacts/14949580751/zip > /tmp/tdrive-artifacts/appimage.zip
+            test -s /tmp/tdrive-artifacts/playwright.zip
+            test -s /tmp/tdrive-artifacts/appimage.zip
+            unzip -tq /tmp/tdrive-artifacts/playwright.zip
+            unzip -tq /tmp/tdrive-artifacts/appimage.zip
 
       - name: Extract and copy all image files into repository
+        if: steps.already.outputs.skip != 'true'
         run: |
           set -euo pipefail
           DEST="TDrive-PR-1-CI-Screenshots/originals"
@@ -74,6 +87,7 @@ jobs:
           EOF
 
       - name: Commit imported originals
+        if: steps.already.outputs.skip != 'true'
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
