@@ -23,14 +23,20 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Start Ollama and load model
-        uses: pydantic/ollama-action@v3
+      - name: Cache Ollama model weights
+        uses: actions/cache@v4
         with:
-          model: qwen2:0.5b
-          cache-key: qwen2-05b-v1
+          path: ~/.ollama
+          key: ollama-qwen2-0.5b-linux-amd64-v1
 
-      - name: Wait for Ollama API
+      - name: Install Ollama
         run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama --version
+
+      - name: Start Ollama server
+        run: |
+          nohup ollama serve > ollama-server.log 2>&1 &
           for attempt in {1..30}; do
             if curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null; then
               echo "Ollama API is ready."
@@ -38,8 +44,17 @@ jobs:
             fi
             sleep 2
           done
+          cat ollama-server.log
           echo "Ollama did not become ready in time." >&2
           exit 1
+
+      - name: Download model if not cached
+        run: |
+          if ollama list | grep -q '^qwen2:0.5b'; then
+            echo "Model already present in cache."
+          else
+            ollama pull qwen2:0.5b
+          fi
 
       - name: Run inference
         env:
