@@ -1,6 +1,6 @@
-# TDrive issue resources
+# Issues — jeetrex17/TDrive
 
-Issue-related artifacts are organized by upstream issue or pull-request number.
+This directory contains issue-specific research and proposal artifacts. Pull request artifacts are kept separately under the PRs directory.
 
-- [Issue/PR #1 — CI screenshot archive](1/CI-Screenshots/README.md)
-- [Issue/PR #201 — Editable path-bar feature](201/README.md)
+- [Issue #140 research](140/exploration.md)
+- [Issue proposals](Proposals/)
