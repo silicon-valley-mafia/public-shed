@@ -1,6 +1,6 @@
 # TDrive — URL Import Proposal
 
-This folder contains a feature proposal package for importing files and media into TDrive directly from URLs.
+This folder contains a unified import proposal for URLs, browser drag-and-drop and clipboard-pasted files/images.
 
 ## Start here
 
@@ -9,7 +9,7 @@ This folder contains a feature proposal package for importing files and media in
 - [End-to-end workflow](02-workflow.md)
 - [Research and codebase findings](03-research-and-codebase-baseline.md)
 - [Security, reliability and operational requirements](04-security-and-reliability.md)
-- [Five-phase roadmap](05-roadmap.md)
+- [Six-phase roadmap](05-roadmap.md)
 - [Phase issue drafts](phase-issues/README.md)
 - [Decision log and open questions](06-decisions-and-open-questions.md)
 - [Verification and acceptance matrix](07-verification-matrix.md)
@@ -29,13 +29,15 @@ The earlier failed-upload recovery workspace has been consolidated here as a sib
 
 The proposal covers:
 - Direct HTTP/HTTPS file URLs.
+- Browser drag-and-drop for files/images and URL-only links.
+- Clipboard paste for browser-exposed image/file items.
 - Platform URLs, initially evaluating X and YouTube.
 - X-specific post/media resolution strategies and yt-dlp.
 - Batch URL imports.
 - Hybrid acquisition using Go HTTP, optional aria2c, and platform-specific downloader ownership where necessary.
 - Private temporary staging and integration with TDrive's existing upload pipeline.
 - Optional FFmpeg processing.
-- Five sequential implementation phases.
+- Six sequential implementation phases, including browser-native intake.
 
 Authentication/cookies are deferred. No implementation is claimed by these documents.
 
