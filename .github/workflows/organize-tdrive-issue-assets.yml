@@ -1,4 +1,4 @@
-name: Organize TDrive issue screenshots
+name: Organize TDrive issue screenshots (main-branch trigger)
 
 on:
   push:
