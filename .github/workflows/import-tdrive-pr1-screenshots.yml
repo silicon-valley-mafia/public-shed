@@ -1,8 +1,6 @@
 name: Import TDrive PR #1 CI screenshots
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   push:
     branches:
       - main
