@@ -1,5 +1,17 @@
 # End-to-end user and system workflows
 
+## Browser drag-and-drop and clipboard intake
+1. User drops one or more browser-visible files/images into the explicit import surface, or focuses that surface and pastes copied image/file content with Ctrl+V / Cmd+V.
+2. Frontend inspects DataTransfer/clipboard event payloads and distinguishes File/Blob bytes from URL/text-only payloads.
+3. File/Blob items are normalized and streamed/chunked into private backend staging under byte, batch, disk and concurrency limits.
+4. URL-only image/link drags and pasted URL text are classified as URL candidates and sent through backend URL validation; renderer code does not fetch them directly.
+5. User reviews the mixed batch, removes unwanted items and confirms destination/encryption.
+6. Browser-originated staged files and URL-acquired files enter the same existing queue and upload API.
+7. Cancellation, preview object URL revocation, source release and cleanup follow explicit ownership rules.
+8. Clipboard access is event-driven only; ordinary paste outside the import surface remains unchanged.
+
+Browser behavior varies by source/runtime: an image drag may expose bytes, a URL, or both. Clipboard items may be absent or permission-restricted; show actionable feedback.
+
 ## Direct single-file URL
 1. User selects Import from URL and pastes one URL.
 2. UI gives basic syntax feedback; backend revalidates every security-sensitive property.
