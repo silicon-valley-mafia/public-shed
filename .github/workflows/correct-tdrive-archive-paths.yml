@@ -1,4 +1,4 @@
-name: Correct TDrive issue and PR archive paths (retry 2)
+name: Correct TDrive issue and PR archive paths (retry 3)
 
 on:
   push:
@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p jeetrex17/TDrive/PRs/201 silicon-valley-mafia/TDrive/PRs/1
+          mkdir -p TDrive jeetrex17/TDrive/PRs/201 silicon-valley-mafia/TDrive/PRs/1
           cat > jeetrex17/TDrive/PRs/201/README.md <<'EOF'
           # Upstream TDrive PR #201 — Editable breadcrumb path
 
