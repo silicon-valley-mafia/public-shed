@@ -1,4 +1,4 @@
-name: Refresh TDrive PR #201 feature screenshots
+name: Maintain TDrive PR #201 feature screenshots
 
 on:
   workflow_dispatch:
@@ -20,11 +20,11 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Download feature-specific PNGs into Issue 201
+      - name: Download feature-specific PNGs into PRs/201
         shell: bash
         run: |
           set -euo pipefail
-          dest="jeetrex17/TDrive/Issues/201/images"
+          dest="jeetrex17/TDrive/PRs/201/images"
           mkdir -p "$dest"
           base="https://raw.githubusercontent.com/silicon-valley-mafia/TDrive/ci/pr201-frontend/frontend/pr201-shots"
           for name in \
@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          folder="jeetrex17/TDrive/Issues/201"
+          folder="jeetrex17/TDrive/PRs/201"
           {
             echo '# TDrive PR #201 — Editable folder path bar'
             echo
@@ -73,7 +73,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add jeetrex17/TDrive/Issues/201
+          git add jeetrex17/TDrive/PRs/201
           if git diff --cached --quiet; then
             echo "Issue 201 gallery is already current."
             exit 0
