@@ -34,15 +34,6 @@ jobs:
             mkdir -p "$(dirname "$new")"
             git mv "$old" "$new"
           fi
-          if [ -d "$new" ]; then
-            python - <<'PY'
-          from pathlib import Path
-          p = Path(".github/workflows/import-tdrive-pr1-screenshots.yml")
-          s = p.read_text(encoding="utf-8")
-          s = s.replace("TDrive-PR-1-CI-Screenshots", "jeetrex17/TDrive/Issues/1/CI-Screenshots")
-          p.write_text(s, encoding="utf-8")
-          PY
-          fi
 
       - name: Download PR #201 feature screenshots into issue folder
         shell: bash
