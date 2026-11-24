@@ -2,7 +2,11 @@
 
 ## Goals
 
-Support direct and platform URLs; separate resolution, acquisition and upload; normalize provider metadata; permit several download engines; stage privately where seekable files are needed; preserve TDrive queue/upload behavior; make progress, cancellation, retry and cleanup observable; enforce one SSRF policy across network paths.
+Support direct/platform URLs plus browser drag-and-drop and clipboard File/Blob inputs; unify intake, separate resolution, acquisition/staging and upload; normalize provider metadata; permit several download engines; stage privately where seekable files are needed; preserve TDrive queue/upload behavior; make progress, cancellation, retry and cleanup observable; enforce one SSRF policy across network paths.
+
+## Unified intake architecture
+
+All inputs enter source-specific intake adapters and produce a common normalized import item. URL inputs proceed through resolution and remote acquisition. Browser File/Blob inputs proceed through bounded local staging. URL-only drag/clipboard payloads are revalidated and use the URL path. Both paths converge on review, the existing queue and upload adapter.
 
 ## High-level architecture
 
@@ -38,7 +42,15 @@ The diagram is a set of alternative paths. A single item must have exactly one d
 
 ## Components
 
-### Intake and validation
+### Intake adapters
+- Accept URLs, browser-dropped files/images, URL-only drags, and user-initiated clipboard image/file paste.
+- Normalize every accepted input to a stable item ID and explicit source kind.
+- Inspect DataTransfer.files/items and clipboardData.items/files; payloads may contain bytes, URL text, or both.
+- Handle paste only on the import surface; never poll clipboard in the background.
+- Route URL-only payloads through backend URL validation; never fetch them directly from renderer code.
+- Stream/chunk File/Blob data to private backend staging with bounded memory; avoid whole-file base64.
+
+### URL intake and validation
 - Accept one or more user URLs.
 - Parse and normalize safe syntax only; client validation is not a security boundary.
 - Allow HTTP/HTTPS only initially.
@@ -169,6 +181,13 @@ Optional:
 
 Prefer stream copy when possible. Avoid transcoding by default. Direct MP4 and ordinary files must not require FFmpeg.
 
+### Browser file staging
+- Stage browser File/Blob bytes into private app-managed storage through bounded streaming/chunked bridge calls.
+- Enforce item-count, per-file, aggregate batch, disk and concurrency limits in the backend.
+- Treat browser MIME and filenames as untrusted hints; sanitize names and validate actual bytes.
+- Treat object URLs as ephemeral previews only; revoke them and never persist them as durable source references.
+- Track cancellation, ownership and release through the upload lifecycle.
+
 ### Staging manager
 
 - Application-managed private temp root.
@@ -227,6 +246,10 @@ stateDiagram-v2
 ```
 
 Expose separate resolution/acquisition/processing/upload states. "Download failed" must not be shown as "Upload failed".
+
+## Browser API compatibility and bridge constraints
+
+Verify DataTransfer and ClipboardEvent behavior in supported Wails/browser runtimes. Image drags may expose File bytes, URL text, or both. Clipboard access is user-gesture/event based and may be restricted. Large File/Blob data must cross the frontend/backend boundary through bounded streaming or chunks, not a single base64 payload. Ordinary paste outside the import surface must remain unchanged.
 
 ## Optional dependency strategy
 
