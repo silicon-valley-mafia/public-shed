@@ -1,0 +1,38 @@
+name: Validate archive and remove legacy branch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/validate-and-clean-legacy-branch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify canonical TDrive archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d jeetrex17/TDrive/PRs/201/images
+          test -f jeetrex17/TDrive/PRs/201/README.md
+          test -f jeetrex17/TDrive/PRs/201/GALLERY.md
+          test -d silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/originals
+          test -f silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/README.md
+          test -f silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/GALLERY.md
+          test ! -e jeetrex17/TDrive/Issues/201
+          test ! -e jeetrex17/TDrive/Issues/1
+          ! grep -R -n 'tdrive-pr1-ci-screenshots' --include='*.md' --include='*.yml' .
+          ! grep -R -n 'Issues/201\|Issues/1/CI-Screenshots\|TDrive-PR-1-CI-Screenshots' --include='*.md' --include='*.yml' .
+          echo "Canonical archive structure validated."
+      - name: Delete obsolete branch after validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method DELETE repos/${{ github.repository }}/git/refs/heads/tdrive-pr1-ci-screenshots
