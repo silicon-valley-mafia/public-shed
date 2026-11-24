@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - tdrive-pr1-ci-screenshots
     paths:
       - .github/workflows/import-tdrive-pr1-screenshots.yml
   workflow_dispatch:
@@ -21,7 +20,7 @@ jobs:
   import-artifacts:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout screenshot branch
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
@@ -30,7 +29,7 @@ jobs:
       - name: Skip if originals are already imported
         id: already
         run: |
-          if [ -d jeetrex17/TDrive/Issues/1/CI-Screenshots/originals ] && [ "$(find jeetrex17/TDrive/Issues/1/CI-Screenshots/originals -type f | wc -l)" -gt 0 ]; then
+          if [ -d silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/originals ] && [ "$(find silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/originals -type f | wc -l)" -gt 0 ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -54,7 +53,7 @@ jobs:
         if: steps.already.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          DEST="jeetrex17/TDrive/Issues/1/CI-Screenshots/originals"
+          DEST="silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/originals"
           mkdir -p /tmp/tdrive-artifacts/playwright /tmp/tdrive-artifacts/appimage "$DEST"
           unzip -oq /tmp/tdrive-artifacts/playwright.zip -d /tmp/tdrive-artifacts/playwright
           unzip -oq /tmp/tdrive-artifacts/appimage.zip -d /tmp/tdrive-artifacts/appimage
@@ -72,7 +71,7 @@ jobs:
             done
           count=$(find "$DEST" -type f | wc -l)
           test "$count" -gt 0
-          cat > jeetrex17/TDrive/Issues/1/CI-Screenshots/IMPORT-MANIFEST.md <<EOF
+          cat > silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/IMPORT-MANIFEST.md <<EOF
           # TDrive PR #1 screenshot import
 
           Imported automatically from GitHub Actions artifacts on $(date -u +'%Y-%m-%d %H:%M UTC').
@@ -85,7 +84,7 @@ jobs:
           EOF
           python - <<'PY'
           from pathlib import Path
-          root = Path("jeetrex17/TDrive/Issues/1/CI-Screenshots")
+          root = Path("silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots")
           exts = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
           files = sorted(p for p in (root / "originals").rglob("*") if p.is_file() and p.suffix.lower() in exts)
           with (root / "GALLERY.md").open("w", encoding="utf-8") as out:
@@ -102,7 +101,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add jeetrex17/TDrive/Issues/1/CI-Screenshots/originals jeetrex17/TDrive/Issues/1/CI-Screenshots/IMPORT-MANIFEST.md jeetrex17/TDrive/Issues/1/CI-Screenshots/GALLERY.md
+          git add silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/originals silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/IMPORT-MANIFEST.md silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/GALLERY.md
           if git diff --cached --quiet; then
             echo "No new screenshot files to commit."
             exit 0
