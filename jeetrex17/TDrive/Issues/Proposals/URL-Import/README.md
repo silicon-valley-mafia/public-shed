@@ -8,6 +8,18 @@ This folder contains a feature proposal package for importing files and media in
 - [Architecture](01-architecture.md)
 - [End-to-end workflow](02-workflow.md)
 - [Research and codebase findings](03-research-and-codebase-baseline.md)
+- [Security and reliability](04-security-and-reliability.md)
+- [Five-phase roadmap](05-roadmap.md)
+- [Phase issue drafts](phase-issues/README.md)
+- [Decisions and open questions](06-decisions-and-open-questions.md)
+- [Verification matrix](07-verification-matrix.md)
+
+## Start here
+
+- [Master proposal](00-master-proposal.md)
+- [Architecture](01-architecture.md)
+- [End-to-end workflow](02-workflow.md)
+- [Research and codebase findings](03-research-and-codebase-baseline.md)
 - [Security, reliability and operational requirements](04-security-and-reliability.md)
 - [Five-phase roadmap](05-roadmap.md)
 - [Phase issue drafts](phase-issues/README.md)
