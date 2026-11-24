@@ -48,6 +48,8 @@ jobs:
           test -s /tmp/tdrive-artifacts/appimage.zip
           unzip -tq /tmp/tdrive-artifacts/playwright.zip
           unzip -tq /tmp/tdrive-artifacts/appimage.zip
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
 
       - name: Extract and copy all image files into repository
         if: steps.already.outputs.skip != 'true'
