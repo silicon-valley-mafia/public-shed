@@ -69,6 +69,12 @@ jobs:
               mkdir -p "$DEST/appimage/$(dirname "$rel")"
               cp -f "$file" "$DEST/appimage/$rel"
             done
+          # Convert the original XWD capture for inline display while retaining it unchanged.
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          if [ -f "$DEST/appimage/window.xwd" ]; then
+            convert "$DEST/appimage/window.xwd" "$DEST/appimage/window.png"
+          fi
           count=$(find "$DEST" -type f | wc -l)
           test "$count" -gt 0
           cat > silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/IMPORT-MANIFEST.md <<EOF
