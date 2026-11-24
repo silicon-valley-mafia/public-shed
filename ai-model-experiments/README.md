@@ -7,7 +7,7 @@ This experiment runs an open-weight language model **locally on a GitHub-hosted 
 - Runner: `ubuntu-24.04` (GitHub-hosted standard runner)
 - Runtime: [Ollama](https://ollama.com/)
 - Model: `qwen2:0.5b` (small Qwen 2 model)
-- Reusable setup action: [pydantic/ollama-action](https://github.com/pydantic/ollama-action)
+- Installation: official Ollama Linux installer; the workflow starts the local `ollama serve` process directly
 - Trigger: manual via `workflow_dispatch`
 - Output: printed in the Actions log and uploaded as a downloadable JSON artifact
 
