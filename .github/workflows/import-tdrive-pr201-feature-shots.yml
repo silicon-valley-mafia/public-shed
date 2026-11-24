@@ -42,7 +42,7 @@ jobs:
             test -s "$dest/$name"
           done
 
-      - name: Generate Issue 201 three-column gallery
+      - name: Generate PR 201 three-column gallery
         shell: bash
         run: |
           set -euo pipefail
