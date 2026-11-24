@@ -1,0 +1,135 @@
+name: Correct TDrive issue and PR archive paths
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/correct-tdrive-archive-paths.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: correct-tdrive-archive-paths
+  cancel-in-progress: false
+
+jobs:
+  reorganize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Move assets to repository and PR-number accurate paths
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Upstream PR #201 lives in jeetrex17/TDrive.
+          old="jeetrex17/TDrive/Issues/201"
+          new="jeetrex17/TDrive/PRs/201"
+          if [ -d "$old" ] && [ ! -d "$new" ]; then
+            mkdir -p "$(dirname "$new")"
+            git mv "$old" "$new"
+          fi
+
+          # PR #1 is the fork's CI mirror, not upstream PR #1.
+          old="jeetrex17/TDrive/Issues/1/CI-Screenshots"
+          new="silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots"
+          if [ -d "$old" ] && [ ! -d "$new" ]; then
+            mkdir -p "$(dirname "$new")"
+            git mv "$old" "$new"
+          fi
+
+          if [ -d "jeetrex17/TDrive/Issues/1" ] && [ -z "$(find jeetrex17/TDrive/Issues/1 -mindepth 1 -print -quit)" ]; then
+            rmdir "jeetrex17/TDrive/Issues/1"
+            git add -A "jeetrex17/TDrive/Issues/1"
+          fi
+
+      - name: Write correct PR metadata and indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p jeetrex17/TDrive/PRs/201 silicon-valley-mafia/TDrive/PRs/1
+          cat > jeetrex17/TDrive/PRs/201/README.md <<'EOF'
+          # Upstream TDrive PR #201 — Editable breadcrumb path
+
+          Repository: [jeetrex17/TDrive](https://github.com/jeetrex17/TDrive)
+          Pull request: [#201 — Type or paste a path into the breadcrumb to open it](https://github.com/jeetrex17/TDrive/pull/201)
+          Related issue: [#182](https://github.com/jeetrex17/TDrive/issues/182)
+          Fork CI mirror: [silicon-valley-mafia/TDrive#1](https://github.com/silicon-valley-mafia/TDrive/pull/1)
+
+          Feature-specific screenshot originals are in the images directory; see GALLERY.md for the compact three-column preview.
+          EOF
+
+          cat > silicon-valley-mafia/TDrive/PRs/1/README.md <<'EOF'
+          # Fork CI mirror PR #1
+
+          Repository: [silicon-valley-mafia/TDrive](https://github.com/silicon-valley-mafia/TDrive)
+          Pull request: [#1 — CI mirror of upstream PR #201](https://github.com/silicon-valley-mafia/TDrive/pull/1)
+          Upstream feature PR: [jeetrex17/TDrive#201](https://github.com/jeetrex17/TDrive/pull/201)
+
+          This is a fork-internal CI mirror, not the upstream feature PR. Its description says not to merge it and to close it when upstream PR #201 lands.
+
+          The CI screenshot archive is in the CI-Screenshots directory.
+          EOF
+
+          cat > TDrive/README.md <<'EOF'
+          # TDrive artifacts
+
+          Artifacts are separated by the actual repository owner/name and pull-request number.
+
+          - [Upstream feature PR #201 — jeetrex17/TDrive](../jeetrex17/TDrive/PRs/201/README.md)
+          - [Fork CI mirror PR #1 — silicon-valley-mafia/TDrive](../silicon-valley-mafia/TDrive/PRs/1/README.md)
+
+          Note: fork PR #1 is the CI mirror of upstream PR #201; it is not the upstream PR and should not be merged.
+          EOF
+
+          cat > jeetrex17/TDrive/PRs/README.md <<'EOF'
+          # Pull requests — jeetrex17/TDrive
+
+          - [PR #201 — Editable breadcrumb path](201/README.md)
+          EOF
+
+          cat > silicon-valley-mafia/TDrive/PRs/README.md <<'EOF'
+          # Pull requests — silicon-valley-mafia/TDrive
+
+          - [PR #1 — CI mirror of upstream PR #201](1/README.md)
+          EOF
+
+          cat > jeetrex17/TDrive/Issues/README.md <<'EOF'
+          # Issues — jeetrex17/TDrive
+
+          This directory contains issue-specific research and proposal artifacts. Pull request artifacts are kept separately under the PRs directory.
+
+          - [Issue #140 research](140/exploration.md)
+          - [Issue proposals](Proposals/)
+          EOF
+
+          if [ -d silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots ]; then
+            cat > silicon-valley-mafia/TDrive/PRs/1/CI-Screenshots/README.md <<'EOF'
+          # CI screenshots — fork PR #1
+
+          These are CI regression screenshots from [silicon-valley-mafia/TDrive#1](https://github.com/silicon-valley-mafia/TDrive/pull/1), the fork's CI mirror of upstream [jeetrex17/TDrive#201](https://github.com/jeetrex17/TDrive/pull/201).
+
+          They are not screenshots for upstream PR #1.
+          EOF
+          fi
+
+      - name: Commit corrected archive structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Archive paths are already correct."
+            exit 0
+          fi
+          git commit -m "Correct TDrive PR archive paths and repository attribution"
+          git push origin main
