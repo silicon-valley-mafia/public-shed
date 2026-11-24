@@ -7,5 +7,6 @@ These are separate upstream issue bodies, ready for maintainer review. They have
 3. [Phase 3 — Platform URL Resolution and Media Extraction](03-platform-url-resolution.md)
 4. [Phase 4 — Acquisition Performance, aria2c, Retry and Recovery](04-acquisition-reliability-aria2c.md)
 5. [Phase 5 — Advanced Media Selection and Optional Processing](05-advanced-media-selection.md)
+6. [Phase 6 — Browser File Intake: Drag-and-Drop and Clipboard](06-browser-file-intake-drag-drop-clipboard.md)
 
 Publish the master tracking issue first. Link the master in each phase issue, then implement/review one phase at a time.
