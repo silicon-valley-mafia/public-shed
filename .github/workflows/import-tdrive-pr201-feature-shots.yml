@@ -7,10 +7,6 @@ on:
       - .github/workflows/import-tdrive-pr201-feature-shots.yml
   workflow_dispatch:
 
-concurrency:
-  group: tdrive-screenshot-imports
-  cancel-in-progress: false
-
 permissions:
   contents: write
 
@@ -28,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dir=jeetrex17/TDrive/Issues/201/images
+          dir=TDrive-PR-201-Path-Bar-Feature/images
           mkdir -p "$dir"
           base=https://raw.githubusercontent.com/silicon-valley-mafia/TDrive/ci/pr201-frontend/frontend/pr201-shots
           for name in \
@@ -47,38 +43,35 @@ jobs:
           done
           echo "Downloaded $(find "$dir" -type f -name '*.png' | wc -l) feature screenshots."
 
-      - name: Generate compact three-column feature gallery
+      - name: Generate gallery
         shell: bash
         run: |
           set -euo pipefail
-          folder=jeetrex17/TDrive/Issues/201
+          folder=TDrive-PR-201-Path-Bar-Feature
+          raw=https://raw.githubusercontent.com/silicon-valley-mafia/public-shed-1/tdrive-pr1-ci-screenshots/$folder/images
           {
             echo '# TDrive PR #201 — Editable folder path bar'
             echo
-            echo 'Feature-specific screenshots for [PR #201](https://github.com/jeetrex17/TDrive/pull/201), not general CI regression captures.'
+            echo 'Feature screenshots for [PR #201](https://github.com/jeetrex17/TDrive/pull/201), not general CI regression captures.'
             echo
-            echo 'The sequence shows the path edit affordance, editable field, not-found feedback, local-path warning, and file-selected state in dark and light themes.'
+            echo 'The images show the edit affordance, path input, invalid-path feedback, local-path warning, and file-selected state in dark and light themes.'
             echo
-            echo 'Displayed at 280 px wide, three previews per row.'
-            echo
-            index=0
             for file in "$folder"/images/*.png; do
               name="${file##*/}"
-              if (( index % 3 == 0 )); then echo '<table><tr>'; fi
-              printf '<td align="center"><img src="images/%s" width="280" alt="%s"><br><sub>%s</sub></td>\\n' "$name" "$name" "$name"
-              index=$((index + 1))
-              if (( index % 3 == 0 )); then echo '</tr></table>'; echo; fi
+              echo "## $name"
+              echo
+              echo "![${name}](${raw}/${name})"
+              echo
             done
-            if (( index % 3 != 0 )); then echo '</tr></table>'; fi
           } > "$folder/GALLERY.md"
           cat > "$folder/README.md" <<'EOF'
 # TDrive PR #201 — Editable folder path bar
 
-Feature-specific screenshots for the breadcrumb/path-bar feature.
+Feature-specific screenshots of the editable breadcrumb/path bar.
 
-- [View the compact gallery](GALLERY.md)
-- [Upstream PR #201](https://github.com/jeetrex17/TDrive/pull/201)
-- PNG originals are retained in images/.
+- [Open the embedded gallery](GALLERY.md)
+- [Source PR #201](https://github.com/jeetrex17/TDrive/pull/201)
+- The original PNGs are retained in `images/`.
 EOF
 
       - name: Commit images and gallery
@@ -87,6 +80,6 @@ EOF
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add jeetrex17/TDrive/Issues/201
+          git add TDrive-PR-201-Path-Bar-Feature
           git commit -m 'Import TDrive PR 201 path bar feature screenshots' || exit 0
           git push origin HEAD:tdrive-pr1-ci-screenshots
