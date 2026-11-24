@@ -4,6 +4,15 @@
 
 | Topic | Position |
 |---|---|
+| Import entry points | Direct/platform URLs, browser drag-and-drop and clipboard paste |
+| Browser File/Blob | Stage through bounded streaming/chunked bridge |
+| URL-only browser payload | Classify as URL and route through backend SSRF controls |
+| Clipboard access | User-initiated paste event only; no background polling |
+| Common pipeline | All inputs use normalized review items and existing queue/uploader |
+| Rollout | Six phases, including browser intake |
+
+| Topic | Position |
+|---|---|
 | URL scope | Direct file URLs and platform/page URLs |
 | Batch | Multiple URLs |
 | Acquisition | Hybrid stream + private staging |
@@ -23,6 +32,13 @@
 - FFmpeg: merge/remux/selected processing only.
 - Cobalt: UX/architecture reference unless permitted self-hosting is approved.
 
+## Browser intake questions
+1. Which Wails frontend/runtime versions expose the required DataTransfer and ClipboardEvent behavior consistently?
+2. Which bridge mechanism transfers large File/Blob payloads without base64 expansion or renderer memory spikes?
+3. Can backend staging accept bounded chunked writes with cancellation and per-session limits?
+4. Which drag payloads expose bytes versus text/uri-list or plain text only?
+5. How should paste shortcuts be scoped so ordinary text fields remain unaffected?
+
 ## Open questions for maintainer/prototype review
 1. Where should Import from URL appear in UI?
 2. Wails synchronous resolver call or asynchronous job/events?
@@ -41,6 +57,11 @@
 15. Which optional binaries are supported and how do users install/update them?
 
 ## Recommendations
+- Browser inputs should be implemented after the normalized intake and queue contracts from Phases 1–2 stabilize.
+- Never read clipboard in the background; use a user-initiated paste event.
+- URL-only drags must pass through backend SSRF validation.
+- Use bounded File/Blob streaming/chunks rather than whole-file base64.
+
 - Phase 1 Go HTTP only.
 - Phase 2 direct URLs only.
 - Phase 3 platform resolver registry.
