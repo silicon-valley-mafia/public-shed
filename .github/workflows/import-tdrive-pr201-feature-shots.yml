@@ -1,85 +1,88 @@
-name: Import TDrive PR 201 feature screenshots
+name: Import PR 201 feature screenshots
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - tdrive-pr1-ci-screenshots
+    branches: [main]
     paths:
       - .github/workflows/import-tdrive-pr201-feature-shots.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  import-feature-shots:
+  import:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout screenshot repository
+      - name: Checkout screenshot branch
         uses: actions/checkout@v4
         with:
           ref: tdrive-pr1-ci-screenshots
+          fetch-depth: 0
 
-      - name: Download feature-specific screenshots from the PR branch
+      - name: Download PR feature screenshots
         shell: bash
         run: |
           set -euo pipefail
-          dest="TDrive-PR-201-Path-Bar-Feature/images"
-          mkdir -p "$dest"
-          api="https://api.github.com/repos/silicon-valley-mafia/TDrive/contents/frontend/pr201-shots?ref=ci%2Fpr201-frontend"
-          curl -fsSL "$api" -H "Accept: application/vnd.github+json" > /tmp/source-images.json
-          jq -r '.[] | select(.type == "file" and (.name | test("^(dark|light)-.*\\.png$"))) | .download_url' /tmp/source-images.json > /tmp/image-urls.txt
-          test -s /tmp/image-urls.txt
-          while IFS= read -r url; do
-            name="${url##*/}"
-            curl -fsSL "$url" -o "$dest/$name"
-          done < /tmp/image-urls.txt
-          count="$(find "$dest" -maxdepth 1 -type f -name '*.png' | wc -l)"
-          test "$count" -gt 0
-          echo "Imported $count feature screenshots."
+          dir=jeetrex17/TDrive/Issues/201/images
+          mkdir -p "$dir"
+          base=https://raw.githubusercontent.com/silicon-valley-mafia/TDrive/ci/pr201-frontend/frontend/pr201-shots
+          for name in \
+            dark-1-hover-edit-button.png dark-1-hover-edit-button-header.png \
+            dark-2-field-open.png dark-2-field-open-header.png \
+            dark-3-not-found.png dark-3-not-found-header.png \
+            dark-4-local-path.png dark-4-local-path-header.png \
+            dark-5-file-selected.png dark-5-file-selected-header.png \
+            light-1-hover-edit-button.png light-1-hover-edit-button-header.png \
+            light-2-field-open.png light-2-field-open-header.png \
+            light-3-not-found.png light-3-not-found-header.png \
+            light-4-local-path.png light-4-local-path-header.png \
+            light-5-file-selected.png light-5-file-selected-header.png; do
+            curl --fail --silent --show-error --location "$base/$name" --output "$dir/$name"
+            test -s "$dir/$name"
+          done
+          echo "Downloaded $(find "$dir" -type f -name '*.png' | wc -l) feature screenshots."
 
-      - name: Create feature gallery and README
+      - name: Generate compact three-column feature gallery
         shell: bash
         run: |
           set -euo pipefail
-          folder="TDrive-PR-201-Path-Bar-Feature"
-          raw="https://raw.githubusercontent.com/silicon-valley-mafia/public-shed-1/tdrive-pr1-ci-screenshots/$folder/images"
+          folder=jeetrex17/TDrive/Issues/201
           {
-            echo "# TDrive PR #201 — Editable path bar"
+            echo '# TDrive PR #201 — Editable folder path bar'
             echo
-            echo "Feature screenshots for [PR #201](https://github.com/jeetrex17/TDrive/pull/201), not general CI regression captures."
+            echo 'Feature-specific screenshots for [PR #201](https://github.com/jeetrex17/TDrive/pull/201), not general CI regression captures.'
             echo
-            echo "Shows the breadcrumb edit affordance, typed path field, path-not-found feedback, local-path warning, and file selection. Both dark and light themes are included."
+            echo 'The sequence shows the path edit affordance, editable field, not-found feedback, local-path warning, and file-selected state in dark and light themes.'
             echo
-            echo "## Screenshots"
-            for file in TDrive-PR-201-Path-Bar-Feature/images/*.png; do
+            echo 'Displayed at 280 px wide, three previews per row.'
+            echo
+            index=0
+            for file in "$folder"/images/*.png; do
               name="${file##*/}"
-              echo
-              echo "### $name"
-              echo
-              echo "![$name]($raw/$name)"
+              if (( index % 3 == 0 )); then echo '<table><tr>'; fi
+              printf '<td align="center"><img src="images/%s" width="280" alt="%s"><br><sub>%s</sub></td>\\n' "$name" "$name" "$name"
+              index=$((index + 1))
+              if (( index % 3 == 0 )); then echo '</tr></table>'; echo; fi
             done
+            if (( index % 3 != 0 )); then echo '</tr></table>'; fi
           } > "$folder/GALLERY.md"
           cat > "$folder/README.md" <<'EOF'
-# TDrive PR #201 — Path Bar Feature
+# TDrive PR #201 — Editable folder path bar
 
-Feature-specific screenshots demonstrating the editable breadcrumb/path bar in PR #201.
+Feature-specific screenshots for the breadcrumb/path-bar feature.
 
-- [View the image gallery](GALLERY.md)
-- [Source PR](https://jeetrex17/TDrive/pull/201)
-- Images are preserved under `images/` and imported from the PR's `frontend/pr201-shots` directory on branch `ci/pr201-frontend`.
+- [View the compact gallery](GALLERY.md)
+- [Upstream PR #201](https://github.com/jeetrex17/TDrive/pull/201)
+- PNG originals are retained in images/.
 EOF
 
-      - name: Commit imported feature screenshots
+      - name: Commit images and gallery
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add TDrive-PR-201-Path-Bar-Feature
-          if git diff --cached --quiet; then
-            echo "No feature screenshot changes."
-            exit 0
-          fi
-          git commit -m "Import TDrive PR 201 path bar feature screenshots"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add jeetrex17/TDrive/Issues/201
+          git commit -m 'Import TDrive PR 201 path bar feature screenshots' || exit 0
           git push origin HEAD:tdrive-pr1-ci-screenshots
