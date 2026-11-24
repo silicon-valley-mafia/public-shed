@@ -7,6 +7,10 @@ on:
       - .github/workflows/import-tdrive-pr201-feature-shots.yml
   workflow_dispatch:
 
+concurrency:
+  group: tdrive-screenshot-imports
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
