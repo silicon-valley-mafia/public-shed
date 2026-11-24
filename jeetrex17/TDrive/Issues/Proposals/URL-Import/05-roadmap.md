@@ -1,4 +1,4 @@
-# Five-phase roadmap
+# Six-phase roadmap
 
 ## Overview
 
@@ -9,6 +9,7 @@
 | 3 | Platform URL Resolution and Media Extraction | X/YouTube resolvers and normalized metadata | Phases 1–2 |
 | 4 | Acquisition Performance, aria2c, Retry and Recovery | Optional aria2c, safe resume/recovery | Phases 1–3 |
 | 5 | Advanced Media Selection and Optional Processing | Variants, multi-item, audio-only and optional FFmpeg | Phase 3; reuse Phase 4 acquisition |
+| 6 | Browser File Intake: Drag-and-Drop and Clipboard | Drop files/images/links and paste clipboard images/files into the same import queue | Phases 1–2 intake/queue contracts |
 
 ## Phase 1 — Direct HTTP/HTTPS URL Import
 Goal: one direct file URL imported end-to-end.
@@ -50,6 +51,15 @@ Goal: richer media choices.
 Scope: select individual post media items, quality/container variants, audio-only where available, separate audio/video, optional FFmpeg merge/remux, prefer stream copy, preserve metadata/safe names, extend platforms incrementally.
 
 Acceptance: real variants only; multiple item/audio choices; FFmpeg used only when required; direct MP4 works without FFmpeg; processing state distinct; no unnecessary lossy transcoding.
+
+## Phase 6 — Browser File Intake: Drag-and-Drop and Clipboard
+Goal: import browser-visible files and images without first saving them to a conventional folder.
+
+Scope: explicit multi-file drop target; inspect DataTransfer.files/items; support image/file bytes when exposed; classify URL-only image/link drags as URL candidates; handle paste events on the focused import surface for clipboard image/file items; recognize pasted URL text in that surface; normalize to stable import items; stream/chunk File/Blob bytes into private staging; enforce backend per-file, aggregate, item-count, disk and concurrency limits; sanitize filenames and treat MIME as untrusted; revoke preview object URLs; reuse destination, encryption, queue, Activity and existing uploader.
+
+Non-goals: background clipboard monitoring, arbitrary webpage scraping, browser extensions, persistent object URLs, or a parallel uploader.
+
+Acceptance: single/multiple file drop; image drag with bytes and URL-only fallback; clipboard image/file paste; ordinary paste outside import surface unchanged; graceful unsupported/denied clipboard handling; bounded memory for large files; spoofed MIME/name and size limits tested; cancellation/cleanup/source-release tested; existing upload pipeline used.
 
 ## Delivery rule
 Publish master issue first. Implement/review one phase at a time. Do not send all five phases to an implementation agent as one task.
