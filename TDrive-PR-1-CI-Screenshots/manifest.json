@@ -1,0 +1,11 @@
+{
+  "source_pr": "https://github.com/silicon-valley-mafia/TDrive/pull/1",
+  "playwright_artifact_id": 14939122064,
+  "appimage_artifact_id": 14949580751,
+  "playwright_unique_screenshots": 41,
+  "embedded_images": [
+    "overview.jpg",
+    "appimage-smoke.jpg"
+  ],
+  "note": "Embedded previews are compressed JPEGs; original PNGs/XWD and logs are in the linked Actions artifact ZIPs."
+}
