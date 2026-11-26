@@ -49,7 +49,7 @@ jobs:
           from datetime import datetime, timezone
 
           DURATION = 30
-          BASE = "https://speed.cloudflare.com"
+          BASE = "https://speedtest.tele2.net"
           count = int(os.environ.get("RUNS", "3"))
           if count not in range(1, 6):
               raise SystemExit("RUNS must be between 1 and 5")
@@ -61,7 +61,7 @@ jobs:
               if direction == "download":
                   while time.monotonic() < deadline:
                       req = urllib.request.Request(
-                          f"{BASE}/__down?bytes=100000000",
+                          f"{BASE}/100MB.zip",
                           headers={"User-Agent": "GitHub-Actions-Network-Speed-Test"},
                       )
                       with urllib.request.urlopen(req, timeout=45) as response:
@@ -75,7 +75,7 @@ jobs:
                   payload = b"x" * (10 * 1024 * 1024)
                   while time.monotonic() < deadline:
                       req = urllib.request.Request(
-                          f"{BASE}/__up",
+                          f"{BASE}/upload.php",
                           data=payload,
                           headers={
                               "User-Agent": "GitHub-Actions-Network-Speed-Test",
@@ -103,7 +103,7 @@ jobs:
                   "duration_seconds_each_direction": DURATION,
                   "download_requests": download_requests,
                   "upload_requests": upload_requests,
-                  "server": "Cloudflare speed.cloudflare.com",
+                  "server": "Tele2 public speed test server",
                   "timestamp_utc": datetime.now(timezone.utc).isoformat(),
               })
 
@@ -111,7 +111,7 @@ jobs:
           uploads = [item["upload_mbps"] for item in measurements]
           summary = {
               "platform": "GitHub-hosted ubuntu-latest",
-              "test_server": "Cloudflare speed.cloudflare.com",
+              "test_server": "Tele2 public speed test server (speedtest.tele2.net)",
               "generated_at_utc": datetime.now(timezone.utc).isoformat(),
               "measurement_count": count,
               "duration_seconds_each_direction": DURATION,
