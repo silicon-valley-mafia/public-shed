@@ -1,0 +1,144 @@
+name: Linux Network Speed Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "Number of measurements (1-5)"
+        required: true
+        default: "3"
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+          - "4"
+          - "5"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-network-speed-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  network-speed:
+    name: Measure Linux runner network throughput
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Collect runner details
+        run: |
+          echo "Runner: $(uname -a)"
+          echo "Region hints:"
+          curl -fsS --max-time 10 https://ipinfo.io/json || true
+          echo
+          echo "Network interfaces:"
+          ip -brief address || true
+
+      - name: Install speed test client
+        run: |
+          python3 -m pip install --user --disable-pip-version-check speedtest-cli
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Measure download and upload speeds
+        env:
+          RUNS: ${{ inputs.runs }}
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          python3 - <<'PY'
+          import json
+          import os
+          import statistics
+          import subprocess
+          import sys
+          import time
+          from datetime import datetime, timezone
+
+          count = int(os.environ.get("RUNS", "3"))
+          if count not in range(1, 6):
+              raise SystemExit("RUNS must be between 1 and 5")
+
+          measurements = []
+          for index in range(count):
+              print(f"Measurement {index + 1}/{count}", flush=True)
+              raw = subprocess.check_output(
+                  ["speedtest-cli", "--json", "--secure"],
+                  text=True,
+                  timeout=180,
+              )
+              data = json.loads(raw)
+              measurements.append({
+                  "run": index + 1,
+                  "download_mbps": round(data["download"] / 1_000_000, 2),
+                  "upload_mbps": round(data["upload"] / 1_000_000, 2),
+                  "ping_ms": round(data["ping"], 2),
+                  "server": {
+                      "name": data.get("server", {}).get("name"),
+                      "country": data.get("server", {}).get("country"),
+                      "sponsor": data.get("server", {}).get("sponsor"),
+                      "id": data.get("server", {}).get("id"),
+                  },
+                  "client": {
+                      "ip": data.get("client", {}).get("ip"),
+                      "isp": data.get("client", {}).get("isp"),
+                  },
+                  "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+              })
+              if index + 1 < count:
+                  time.sleep(5)
+
+          downloads = [item["download_mbps"] for item in measurements]
+          uploads = [item["upload_mbps"] for item in measurements]
+          summary = {
+              "platform": "GitHub-hosted ubuntu-latest",
+              "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+              "measurement_count": count,
+              "download_mbps_avg": round(statistics.mean(downloads), 2),
+              "download_mbps_min": round(min(downloads), 2),
+              "download_mbps_max": round(max(downloads), 2),
+              "upload_mbps_avg": round(statistics.mean(uploads), 2),
+              "upload_mbps_min": round(min(uploads), 2),
+              "upload_mbps_max": round(max(uploads), 2),
+              "measurements": measurements,
+          }
+          with open("results/network-speed.json", "w", encoding="utf-8") as stream:
+              json.dump(summary, stream, indent=2)
+              stream.write("\n")
+
+          lines = [
+              "# Linux Network Speed Test",
+              "",
+              f"- Platform: {summary['platform']}",
+              f"- Generated (UTC): {summary['generated_at_utc']}",
+              f"- Measurements: {count}",
+              f"- Download average: **{summary['download_mbps_avg']} Mbps** "
+              f"(min {summary['download_mbps_min']}, max {summary['download_mbps_max']})",
+              f"- Upload average: **{summary['upload_mbps_avg']} Mbps** "
+              f"(min {summary['upload_mbps_min']}, max {summary['upload_mbps_max']})",
+              "",
+              "| Run | Download (Mbps) | Upload (Mbps) | Ping (ms) | Server |",
+              "|---:|---:|---:|---:|---|",
+          ]
+          for item in measurements:
+              server = item["server"]
+              label = " / ".join(filter(None, [server.get("sponsor"), server.get("name"), server.get("country")]))
+              lines.append(
+                  f"| {item['run']} | {item['download_mbps']} | "
+                  f"{item['upload_mbps']} | {item['ping_ms']} | {label} |"
+              )
+          with open("results/summary.md", "w", encoding="utf-8") as stream:
+              stream.write("\n".join(lines) + "\n")
+
+          print("\n".join(lines))
+          PY
+
+      - name: Upload measurement results
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-network-speed-${{ github.run_number }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 30
