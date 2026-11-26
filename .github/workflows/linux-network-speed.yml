@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: linux-network-speed-\${{ github.ref }}
+  group: linux-network-speed-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
 
       - name: Measure download and upload for 30 seconds each
         env:
-          RUNS: \${{ inputs.runs }}
+          RUNS: ${{ inputs.runs }}
         run: |
           set -euo pipefail
           mkdir -p results
@@ -154,7 +154,7 @@ jobs:
       - name: Upload measurement results
         uses: actions/upload-artifact@v4
         with:
-          name: linux-network-speed-\${{ github.run_number }}
+          name: linux-network-speed-${{ github.run_number }}
           path: results/
           if-no-files-found: error
           retention-days: 30
