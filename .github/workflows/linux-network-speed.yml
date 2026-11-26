@@ -19,32 +19,24 @@ permissions:
   contents: read
 
 concurrency:
-  group: linux-network-speed-${{ github.ref }}
+  group: linux-network-speed-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   network-speed:
     name: Measure Linux runner network throughput
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Collect runner details
         run: |
           echo "Runner: $(uname -a)"
-          echo "Region hints:"
-          curl -fsS --max-time 10 https://ipinfo.io/json || true
-          echo
           echo "Network interfaces:"
           ip -brief address || true
 
-      - name: Install speed test client
-        run: |
-          python3 -m pip install --user --disable-pip-version-check speedtest-cli
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Measure download and upload speeds
+      - name: Measure download and upload for 30 seconds each
         env:
-          RUNS: ${{ inputs.runs }}
+          RUNS: \${{ inputs.runs }}
         run: |
           set -euo pipefail
           mkdir -p results
@@ -52,50 +44,77 @@ jobs:
           import json
           import os
           import statistics
-          import subprocess
-          import sys
           import time
+          import urllib.request
           from datetime import datetime, timezone
 
+          DURATION = 30
+          BASE = "https://speed.cloudflare.com"
           count = int(os.environ.get("RUNS", "3"))
           if count not in range(1, 6):
               raise SystemExit("RUNS must be between 1 and 5")
 
+          def transfer(direction):
+              deadline = time.monotonic() + DURATION
+              total_bytes = 0
+              request_count = 0
+              if direction == "download":
+                  while time.monotonic() < deadline:
+                      req = urllib.request.Request(
+                          f"{BASE}/__down?bytes=100000000",
+                          headers={"User-Agent": "GitHub-Actions-Network-Speed-Test"},
+                      )
+                      with urllib.request.urlopen(req, timeout=45) as response:
+                          while time.monotonic() < deadline:
+                              chunk = response.read(1024 * 1024)
+                              if not chunk:
+                                  break
+                              total_bytes += len(chunk)
+                      request_count += 1
+              else:
+                  payload = b"x" * (10 * 1024 * 1024)
+                  while time.monotonic() < deadline:
+                      req = urllib.request.Request(
+                          f"{BASE}/__up",
+                          data=payload,
+                          headers={
+                              "User-Agent": "GitHub-Actions-Network-Speed-Test",
+                              "Content-Type": "application/octet-stream",
+                          },
+                          method="POST",
+                      )
+                      with urllib.request.urlopen(req, timeout=45) as response:
+                          response.read()
+                      total_bytes += len(payload)
+                      request_count += 1
+              elapsed = DURATION
+              return round(total_bytes * 8 / elapsed / 1_000_000, 2), request_count
+
           measurements = []
           for index in range(count):
-              print(f"Measurement {index + 1}/{count}", flush=True)
-              raw = subprocess.check_output(
-                  ["speedtest-cli", "--json", "--secure"],
-                  text=True,
-                  timeout=180,
-              )
-              data = json.loads(raw)
+              print(f"Measurement {index + 1}/{count}: download {DURATION}s", flush=True)
+              download_mbps, download_requests = transfer("download")
+              print(f"Measurement {index + 1}/{count}: upload {DURATION}s", flush=True)
+              upload_mbps, upload_requests = transfer("upload")
               measurements.append({
                   "run": index + 1,
-                  "download_mbps": round(data["download"] / 1_000_000, 2),
-                  "upload_mbps": round(data["upload"] / 1_000_000, 2),
-                  "ping_ms": round(data["ping"], 2),
-                  "server": {
-                      "name": data.get("server", {}).get("name"),
-                      "country": data.get("server", {}).get("country"),
-                      "sponsor": data.get("server", {}).get("sponsor"),
-                      "id": data.get("server", {}).get("id"),
-                  },
-                  "client": {
-                      "ip": data.get("client", {}).get("ip"),
-                      "isp": data.get("client", {}).get("isp"),
-                  },
+                  "download_mbps": download_mbps,
+                  "upload_mbps": upload_mbps,
+                  "duration_seconds_each_direction": DURATION,
+                  "download_requests": download_requests,
+                  "upload_requests": upload_requests,
+                  "server": "Cloudflare speed.cloudflare.com",
                   "timestamp_utc": datetime.now(timezone.utc).isoformat(),
               })
-              if index + 1 < count:
-                  time.sleep(5)
 
           downloads = [item["download_mbps"] for item in measurements]
           uploads = [item["upload_mbps"] for item in measurements]
           summary = {
               "platform": "GitHub-hosted ubuntu-latest",
+              "test_server": "Cloudflare speed.cloudflare.com",
               "generated_at_utc": datetime.now(timezone.utc).isoformat(),
               "measurement_count": count,
+              "duration_seconds_each_direction": DURATION,
               "download_mbps_avg": round(statistics.mean(downloads), 2),
               "download_mbps_min": round(min(downloads), 2),
               "download_mbps_max": round(max(downloads), 2),
@@ -112,33 +131,30 @@ jobs:
               "# Linux Network Speed Test",
               "",
               f"- Platform: {summary['platform']}",
+              f"- Test server: {summary['test_server']}",
               f"- Generated (UTC): {summary['generated_at_utc']}",
               f"- Measurements: {count}",
-              f"- Download average: **{summary['download_mbps_avg']} Mbps** "
-              f"(min {summary['download_mbps_min']}, max {summary['download_mbps_max']})",
-              f"- Upload average: **{summary['upload_mbps_avg']} Mbps** "
-              f"(min {summary['upload_mbps_min']}, max {summary['upload_mbps_max']})",
+              f"- Duration: {DURATION}s download + {DURATION}s upload per measurement",
+              f"- Download average: **{summary['download_mbps_avg']} Mbps** (min {summary['download_mbps_min']}, max {summary['download_mbps_max']})",
+              f"- Upload average: **{summary['upload_mbps_avg']} Mbps** (min {summary['upload_mbps_min']}, max {summary['upload_mbps_max']})",
               "",
-              "| Run | Download (Mbps) | Upload (Mbps) | Ping (ms) | Server |",
-              "|---:|---:|---:|---:|---|",
+              "| Run | Download (Mbps) | Upload (Mbps) | Duration per direction |",
+              "|---:|---:|---:|---:|",
           ]
           for item in measurements:
-              server = item["server"]
-              label = " / ".join(filter(None, [server.get("sponsor"), server.get("name"), server.get("country")]))
               lines.append(
                   f"| {item['run']} | {item['download_mbps']} | "
-                  f"{item['upload_mbps']} | {item['ping_ms']} | {label} |"
+                  f"{item['upload_mbps']} | {DURATION}s |"
               )
           with open("results/summary.md", "w", encoding="utf-8") as stream:
               stream.write("\n".join(lines) + "\n")
-
           print("\n".join(lines))
           PY
 
       - name: Upload measurement results
         uses: actions/upload-artifact@v4
         with:
-          name: linux-network-speed-${{ github.run_number }}
+          name: linux-network-speed-\${{ github.run_number }}
           path: results/
           if-no-files-found: error
           retention-days: 30
